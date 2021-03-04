@@ -48,9 +48,10 @@ class Correction:
                 self.operation, self.type = correction_metadata
                 self.subtype = None
 
-    def apply_to_tokenlist(self, token_list: List[str]):
+    def apply_to_tokenlist(self, token_list: List[str]) -> List[str]:
         # must either only apply one correction, or apply these starting from the end of the sentence, since
         # token offsets change if preceding corrections are applied
         if self.operation not in {self.NOOP, self.UNK, self.UM}:
             token_list[self.start:self.end] = self.content.split()
-            return token_list
+
+        return token_list
