@@ -10,7 +10,7 @@ class TokenAlignments:
         super().__init__()
 
     def __setitem__(self, new: int, original: Optional[range]):
-        raise Exception('Cannot directly set values, use add_correction_alignment()')
+        raise RuntimeError('Cannot directly set values, use add_correction_alignment()')
 
     def __contains__(self, item):
         return item in self.correction_alignments

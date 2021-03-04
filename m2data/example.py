@@ -1,26 +1,35 @@
 from functools import reduce
-from typing import List
+from typing import List, FrozenSet, Optional
 
 from m2data.correction import Correction
 from m2data.token_alignments import TokenAlignments
 
 
 class Example:
-    __slots__ = ['original', 'corrections', '_corrected_form', 'raw']
+    __slots__ = ['original', 'corrections']
 
     def __init__(self, original_line: str, correction_lines: List[str]):
         self.original = original_line[2:]
-        self.corrections = [Correction(line) for line in correction_lines]
-        self._corrected_form = None
-        self.raw = '\n'.join(x.strip() for x in [original_line] + correction_lines)
+        self.corrections = sorted((Correction(line) for line in correction_lines), key=lambda c: c.start)
 
-    def to_json(self, include_corrected_form: bool = True,
-                include_raw: bool = False, include_raw_corrections: bool = False):
-        json = {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)
-                and (s != 'raw' or include_raw)}
+    def get_raw_sentence_line(self):
+        return 'S ' + self.original
 
-        if include_corrected_form and self._corrected_form is None:
-            json['_corrected_form'] = self.get_corrected_form()
+    def get_full_raw(self):
+        return '\n'.join([self.get_raw_sentence_line()] + [c.raw_line for c in self.corrections])
+
+    def to_json(self, all_corrected_forms: bool = False, include_full_raw: bool = False,
+                include_raw_corrections: bool = False):
+        json = {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)}
+
+        if include_full_raw:
+            json['raw'] = self.get_full_raw()
+
+        if all_corrected_forms:
+            json['corrected'] = [self.get_corrected_form(annotator_id) for annotator_id in self.get_annotator_ids()]
+        else:
+            json['corrected'] = self.get_corrected_form()
+
         json['corrections'] = [cor.to_json(include_raw_line=include_raw_corrections) for cor in json['corrections']]
         return json
 
@@ -31,27 +40,32 @@ class Example:
         return str({s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)})
 
     def get_corrections(self, correction_type: str = None, correction_subtype: str = None,
-                        correction_operation: str = None) -> List[Correction]:
+                        correction_operation: str = None,
+                        annotator_ids: Optional[FrozenSet[int]] = None) -> List[Correction]:
+
         return [c for c in self.corrections if (correction_type is None or c.type == correction_type)
                 and (correction_subtype is None or c.subtype == correction_subtype)
-                and (correction_operation is None or c.operation == correction_operation)]
+                and (correction_operation is None or c.operation == correction_operation)
+                and (annotator_ids is None or c.annotator in annotator_ids)]
 
     def has_correction(self, correction_type: str = None, correction_subtype: str = None,
-                       correction_operation: str = None) -> bool:
-        return len(self.get_corrections(correction_type, correction_subtype, correction_operation)) > 0
+                       correction_operation: str = None, annotator_ids: Optional[FrozenSet[int]] = None) -> bool:
+        return len(self.get_corrections(correction_type, correction_subtype, correction_operation, annotator_ids)) > 0
 
     def is_noop(self) -> bool:  # also true if corrections is empty, conveniently
         return len(self.get_corrections(correction_type=Correction.NOOP)) == len(self.corrections)
 
-    # TODO: compare against https://www.cl.cam.ac.uk/research/nl/bea2019st/data/corr_from_m2.py
-    # and make sure we're not doing anything wrong, like applying edits from multiple annotators
-    # corrections are applied in reverse order (right to left) so as not to invalidate the indices of other corrections
-    def get_corrected_form(self) -> str:
-        if self._corrected_form is None:
-            self._corrected_form = ' '.join(reduce(lambda x, y: y.apply_to_tokenlist(x), reversed(self.corrections),
-                                                   self.original.split()))
+    def get_corrected_form(self, annotator_id: int = 0) -> str:
+        if annotator_id not in self.get_annotator_ids():
+            raise RuntimeError('Invalid annotator ID')
+        # simplified from https://www.cl.cam.ac.uk/research/nl/bea2019st/data/corr_from_m2.py
+        # apply corrections in reverse to avoid having to deal with offsets
+        return ' '.join(reduce(lambda x, y: y.apply_to_tokenlist(x),
+                               reversed([c for c in self.corrections if c.annotator == annotator_id]),
+                               self.original.split()))
 
-        return self._corrected_form
+    def get_annotator_ids(self) -> FrozenSet[int]:
+        return frozenset(c.annotator for c in self.corrections)
 
     def get_corrected_token_alignments(self) -> TokenAlignments:
         token_offset = 0

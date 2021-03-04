@@ -1,6 +1,6 @@
-from collections import Iterable
+from typing import Iterable
 
-from m2data import Example
+from m2data.example import Example
 
 
 class M2ReaderException(Exception):
