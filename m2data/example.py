@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import List, FrozenSet, Optional
+from typing import List, FrozenSet, Optional, Dict, Iterable
 
 from m2data.correction import Correction
 from m2data.token_alignments import TokenAlignments
@@ -19,7 +19,7 @@ class Example:
         return '\n'.join([self.get_raw_sentence_line()] + [c.raw_line for c in self.corrections])
 
     def to_json(self, all_corrected_forms: bool = False, include_full_raw: bool = False,
-                include_raw_corrections: bool = False):
+                include_raw_corrections: bool = False, annotator_id: int = 0) -> Dict:
         json = {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)}
 
         if include_full_raw:
@@ -28,10 +28,16 @@ class Example:
         if all_corrected_forms:
             json['corrected'] = [self.get_corrected_form(annotator_id) for annotator_id in self.get_annotator_ids()]
         else:
-            json['corrected'] = self.get_corrected_form()
+            json['corrected'] = self.get_corrected_form(annotator_id)
 
         json['corrections'] = [cor.to_json(include_raw_line=include_raw_corrections) for cor in json['corrections']]
         return json
+
+    def json_per_annotator(self, all_corrected_forms: bool = False, include_full_raw: bool = False,
+                           include_raw_corrections: bool = False) -> Iterable[Dict]:
+        for annotator_id in self.get_annotator_ids():
+            yield self.to_json(all_corrected_forms=all_corrected_forms, include_full_raw=include_full_raw,
+                               include_raw_corrections=include_raw_corrections, annotator_id=annotator_id)
 
     def __repr__(self):
         return str(self)
