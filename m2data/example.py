@@ -75,7 +75,7 @@ class Example:
 
     def get_corrected_token_alignments(self) -> TokenAlignments:
         token_offset = 0
-        alignments = TokenAlignments()
+        alignments = TokenAlignments(len(self.get_corrected_form().split()))
         for correction in self.corrections:
             if correction.operation == Correction.MISSING:
                 content_length = len(correction.content.split())
