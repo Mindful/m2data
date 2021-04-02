@@ -47,12 +47,14 @@ class Example:
 
     def get_corrections(self, correction_type: str = None, correction_subtype: str = None,
                         correction_operation: str = None,
-                        annotator_ids: Optional[FrozenSet[int]] = None) -> List[Correction]:
+                        annotator_ids: Optional[FrozenSet[int]] = None,
+                        incldude_noop: bool = False) -> List[Correction]:
 
         return [c for c in self.corrections if (correction_type is None or c.type == correction_type)
                 and (correction_subtype is None or c.subtype == correction_subtype)
                 and (correction_operation is None or c.operation == correction_operation)
-                and (annotator_ids is None or c.annotator in annotator_ids)]
+                and (annotator_ids is None or c.annotator in annotator_ids)
+                and (incldude_noop or c.type != Correction.NOOP)]
 
     def has_correction(self, correction_type: str = None, correction_subtype: str = None,
                        correction_operation: str = None, annotator_ids: Optional[FrozenSet[int]] = None) -> bool:
@@ -73,6 +75,7 @@ class Example:
     def get_annotator_ids(self) -> FrozenSet[int]:
         return frozenset(c.annotator for c in self.corrections)
 
+    #TODO: this may not be that reliable, and it's definitely kind of subjective. hard problem
     def get_corrected_token_alignments(self) -> TokenAlignments:
         token_offset = 0
         alignments = TokenAlignments(len(self.get_corrected_form().split()))
