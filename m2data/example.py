@@ -48,20 +48,21 @@ class Example:
     def get_corrections(self, correction_type: str = None, correction_subtype: str = None,
                         correction_operation: str = None,
                         annotator_ids: Optional[FrozenSet[int]] = None,
-                        incldude_noop: bool = False) -> List[Correction]:
+                        include_ignored_types: bool = False) -> List[Correction]:
 
         return [c for c in self.corrections if (correction_type is None or c.type == correction_type)
                 and (correction_subtype is None or c.subtype == correction_subtype)
                 and (correction_operation is None or c.operation == correction_operation)
                 and (annotator_ids is None or c.annotator in annotator_ids)
-                and (incldude_noop or c.type != Correction.NOOP)]
+                and (include_ignored_types or c.type not in Correction.IGNORED_TYPES)]
 
     def has_correction(self, correction_type: str = None, correction_subtype: str = None,
                        correction_operation: str = None, annotator_ids: Optional[FrozenSet[int]] = None) -> bool:
         return len(self.get_corrections(correction_type, correction_subtype, correction_operation, annotator_ids)) > 0
 
     def is_noop(self) -> bool:  # also true if corrections is empty, conveniently
-        return len(self.get_corrections(correction_type=Correction.NOOP)) == len(self.corrections)
+        return len(self.get_corrections(correction_type=Correction.NOOP, include_ignored_types=True))\
+               == len(self.corrections)
 
     def get_corrected_form(self, annotator_id: int = 0) -> str:
         if annotator_id not in self.get_annotator_ids():

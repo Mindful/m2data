@@ -16,6 +16,8 @@ class Correction:
         UNK: 'unknown', NOOP: 'noop'
     }
 
+    IGNORED_TYPES = {NOOP, UNK, UM}
+
     def to_json(self, include_raw_line: bool = False):
         return {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)
                 and (s != 'raw_line' or include_raw_line)}
@@ -51,7 +53,7 @@ class Correction:
     def apply_to_tokenlist(self, token_list: List[str]) -> List[str]:
         # must either only apply one correction, or apply these starting from the end of the sentence, since
         # token offsets change if preceding corrections are applied
-        if self.operation not in {self.NOOP, self.UNK, self.UM}:
+        if self.operation not in self.IGNORED_TYPES:
             token_list[self.start:self.end] = self.content.split()
 
         return token_list
