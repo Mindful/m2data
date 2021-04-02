@@ -56,8 +56,9 @@ class TokenAlignments:
     def inverted(self) -> Dict:
         output = defaultdict(list)
         for idx in range(self.length):
-            for corresponding_idx in self[idx]:
-                output[corresponding_idx].append(idx)
+            if self[idx] is not None:
+                for corresponding_idx in self[idx]:
+                    output[corresponding_idx].append(idx)
 
         output = {
             key: range(min(val), max(val)+1) for key, val in output.items()
