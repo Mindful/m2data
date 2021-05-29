@@ -18,7 +18,12 @@ class M2ReaderException(Exception):
 
 
 class Reader:
+    """Returns an Example object for each sentence with corrections in an .m2 file. """
     def __init__(self, input_data: Union[Iterable[str], str], progress_bar: bool = False):
+        """
+        :param input_data: the filename of an .m2 file to read in, or an iterable of lines as read from an .m2 file
+        :param progress_bar: whether or not to display a progress bar for reading the file. Requires tqdm if True
+        """
         self.progress_bar = progress_bar
 
         if self.progress_bar:
@@ -80,7 +85,6 @@ class Reader:
             progress_bar.close()
         if hasattr(self, 'input_file'):
             self.input_file.close()
-
 
     def __del__(self):
         if hasattr(self, 'input_file'):

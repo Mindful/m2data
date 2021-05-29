@@ -6,6 +6,7 @@ from m2data.token_alignments import TokenAlignments
 
 
 class Example:
+    """Represents a single sentence with corrections"""
     __slots__ = ['original', 'corrections']
 
     def __init__(self, original_line: str, correction_lines: List[str]):
@@ -49,6 +50,15 @@ class Example:
                         correction_operation: str = None,
                         annotator_ids: Optional[FrozenSet[int]] = None,
                         include_ignored_types: bool = False) -> List[Correction]:
+        """
+
+        :param correction_type: Return only corrections of this type
+        :param correction_subtype: Return only corrections of this subtype
+        :param correction_operation: Return only corrections which perform this operation (insert/delete/replace)
+        :param annotator_ids: Return only corrections made by annotators with IDs in this set
+        :param include_ignored_types: Whether to include NOOP/UNK/UM correction types
+        :return: a list containing corrections for this Example
+        """
 
         return [c for c in self.corrections if (correction_type is None or c.type == correction_type)
                 and (correction_subtype is None or c.subtype == correction_subtype)

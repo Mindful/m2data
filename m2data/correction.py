@@ -2,6 +2,7 @@ from typing import List
 
 
 class Correction:
+    """Represents a single correction, or one correction line in an .m2 file"""
     __slots__ = ['start', 'end', 'content', 'operation', 'type', 'subtype', 'raw_line', 'annotator']
 
     REPLACE = 'R'
