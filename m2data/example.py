@@ -60,12 +60,20 @@ class Example:
                        correction_operation: str = None, annotator_ids: Optional[FrozenSet[int]] = None) -> bool:
         return len(self.get_corrections(correction_type, correction_subtype, correction_operation, annotator_ids)) > 0
 
-    def is_noop(self) -> bool:  # also true if corrections is empty, conveniently
-        return len(self.get_corrections(correction_type=Correction.NOOP, include_ignored_types=True))\
+    def is_noop(self, compare_corrected_form: bool = False) -> bool:
+        """Whether the correction is a no-op. By default, this just looks at whether meaningful corrections are present,
+        but if compare_corrected_form is set to True it will compare the original string. The result should be the same
+        as long as correction content is sane, but if your data contains corrections that replace words with identical
+        content, they will only be marked as no-op with compare_corrected_form set to True."""
+        if compare_corrected_form:
+            return self.original == self.get_corrected_form()
+        else:
+            # this is also true if corrections is empty, conveniently
+            return len(self.get_corrections(correction_type=Correction.NOOP, include_ignored_types=True))\
                == len(self.corrections)
 
     def get_corrected_form(self, annotator_id: int = 0) -> str:
-        if annotator_id not in self.get_annotator_ids():
+        if len(self.get_annotator_ids()) > 0 and annotator_id not in self.get_annotator_ids():
             raise RuntimeError('Invalid annotator ID')
         # simplified from https://www.cl.cam.ac.uk/research/nl/bea2019st/data/corr_from_m2.py
         # apply corrections in reverse to avoid having to deal with offsets
@@ -76,8 +84,10 @@ class Example:
     def get_annotator_ids(self) -> FrozenSet[int]:
         return frozenset(c.annotator for c in self.corrections)
 
-    #TODO: this may not be that reliable, and it's definitely kind of subjective. hard problem
     def get_corrected_token_alignments(self) -> TokenAlignments:
+        """Make a best effort to get corrected token alignments. This is fundamentally subjective in some cases, so
+        if you need specific behavior for edge cases it's recommended that you use your own implementation. This method
+        should be sufficient for simple cases, however."""
         token_offset = 0
         alignments = TokenAlignments(len(self.get_corrected_form().split()))
         for correction in self.corrections:
